@@ -48,13 +48,13 @@ PROJECT_ID_KEY = 'projectId'
 # Key for project name for PROJECT_INFO_ID response
 PROJECT_NAME_KEY = 'projectName'
 
-RUN_JOB = ("POST", "hopsworks-api/api/project/{project_id}/jobs/{job_name}/executions?action=start")
+RUN_JOB = ("POST", "giotto-api/api/project/{project_id}/jobs/{job_name}/executions?action=start")
 # Get the latest execution
-JOB_STATE = ("GET", "hopsworks-api/api/project/{project_id}/jobs/{job_name}/executions?sort_by=appId:desc&limit=1")
+JOB_STATE = ("GET", "giotto-api/api/project/{project_id}/jobs/{job_name}/executions?sort_by=appId:desc&limit=1")
 # Get Project info from name
-PROJECT_INFO_NAME = ("GET", "hopsworks-api/api/project/getProjectInfo/{project_name}")
+PROJECT_INFO_NAME = ("GET", "giotto-api/api/project/getProjectInfo/{project_name}")
 # Get Project info from id
-PROJECT_INFO_ID = ("GET", "hopsworks-api/api/project/{project_id}")
+PROJECT_INFO_ID = ("GET", "giotto-api/api/project/{project_id}")
 
 class HopsworksHook(BaseHook, LoggingMixin):
     """
