@@ -82,7 +82,7 @@ def authenticate(jwt):
     hopsworks_port = configuration.conf.get("webserver", "hopsworks_port")
     if not hopsworks_port:
         hopsworks_port = 443
-    url = "https://{host}:{port}/hopsworks-api/api/auth/jwt/session".format(
+    url = "https://{host}:{port}/giotto-api/api/auth/jwt/session".format(
         host = parse_host(hopsworks_host),
         port = hopsworks_port)
 
