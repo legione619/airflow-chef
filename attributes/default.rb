@@ -38,8 +38,8 @@ default['sqoop']['url']               = "#{node['download_url']}/sqoop-#{node['s
 default["sqoop"]["port"]              = "16000"
 
 
-
-default['airflow']["operators"]       = "hive,mysql,kubernetes,password,hdfs,slack,ssh,jdbc,mysql,devel_hadoop,crypto"
+## Remove devel_hadoop which brings snakebite[kerberos] which does not work on Python 3
+default['airflow']["operators"]       = "hive,mysql,kubernetes,password,hdfs,slack,ssh,jdbc,mysql,crypto"
 
 #default['airflow']["user_uid"] = 9999
 #default['airflow']["group_gid"] = 9999
@@ -100,11 +100,12 @@ default['airflow']["config"]["core"]["fernet_key"] = "G3jB5--jCQpRYp7hwUtpfQ_S8z
 # Celery
 default['airflow']["config"]["celery"]["worker_concurrency"] = 16
 default['airflow']["config"]["celery"]["broker_url"] = "rdis://#{node['host']}:6379/0"
-default['airflow']["config"]["celery"]["celery_result_backend"] = "db+mysql://#{node['airflow']['mysql_user']}:#{node['airflow']['mysql_password']}@#{node['fqdn']}:3306/airflow"
+
+default['airflow']["config"]["celery"]["celery_result_backend"] = node['install']['localhost'].casecmp?("true") ? "db+mysql://#{node['airflow']['mysql_user']}:#{node['airflow']['mysql_password']}@127.0.0.1:3306/airflow" : "db+mysql://#{node['airflow']['mysql_user']}:#{node['airflow']['mysql_password']}@#{node['fqdn']}:3306/airflow"
 
 # MySQL
 # The SqlAlchemy connection string to the metadata database.
-default['airflow']["config"]["core"]["sql_alchemy_conn"] = "mysql://#{node['airflow']['mysql_user']}:#{node['airflow']['mysql_password']}@#{node['fqdn']}:3306/airflow"
+default['airflow']["config"]["core"]["sql_alchemy_conn"] = node['install']['localhost'].casecmp?("true") ? "mysql://#{node['airflow']['mysql_user']}:#{node['airflow']['mysql_password']}@127.0.0.1:3306/airflow" : "mysql://#{node['airflow']['mysql_user']}:#{node['airflow']['mysql_password']}@#{node['fqdn']}:3306/airflow"
 # The SqlAlchemy pool size is the maximum number of database connection in the pool.
 default['airflow']["config"]["core"]["sql_alchemy_pool_size"] = 5
 # The SqlAlchemy pool recycle is the number of seconds a connection
@@ -140,13 +141,15 @@ default['airflow']["config"]["github_enterprise"]["api_rev"] = 'v3'
 default['airflow']["config"]["core"]["executor"]  = "LocalExecutor"
 
 default['airflow']['config']['core']['load_examples'] = false
+default['airflow']['config']['core']['default_timezone'] = "system"
 
 # The base url of your website as airflow cannot guess what domain or
 # cname you are using. This is used in automated emails that
 # airflow sends to point links to the right web server
 default['airflow']["config"]["webserver"]["web_server_worker_timeout"]  = 120
 default['airflow']["config"]["webserver"]["web_server_port"] = 12358
-default['airflow']["config"]["webserver"]["base_url"] = "http://#{node['fqdn']}:" + node['airflow']['config']['webserver']['web_server_port'].to_s
+default['airflow']['config']['webserver']['base_path'] = "/hopsworks-api/airflow"
+default['airflow']["config"]["webserver"]["base_url"] = (node['install']['localhost'].casecmp?("true") ?  "http://localhost:" : "http://#{node['fqdn']}:") + node['airflow']['config']['webserver']['web_server_port'].to_s + node['airflow']['config']['webserver']['base_path']  
 default['airflow']["config"]["webserver"]["web_server_host"] = '0.0.0.0'
 # The port on which to run the web server
 # The time the gunicorn webserver waits before timing out on a worker
@@ -204,8 +207,14 @@ default['airflow']["config"]["celery"]["default_queue"]  = "default"
 #
 # Reverse Http Proxy
 # 
-default['airflow']['config']['celery']['flower_url_prefix'] = "http://localhost/giotto-api/flower"
-default['airflow']['config']['webserver']['base_url'] = "http://localhost/giotto-api/airflow"
+default['airflow']['config']['celery']['flower_url_prefix'] = "http://localhost/hopsworks-api/flower"
+
+#
+# Metrics exporter 
+# TODO: When we migrate to airflow 1.10.3 or higher we will be able to install the plugin with pip
+#
+default['airflow']['metrics']['exporter_url'] = "#{node['download_url']}/prometheus/airflow-exporter.tar.gz" 
+
 
 #
 # Scheduler

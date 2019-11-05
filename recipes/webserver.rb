@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+deps = ""
+if exists_local("ndb", "mysqld") 
+  deps = "mysqld.service"
+end  
+
 if (node["airflow"]["init_system"] == "upstart") 
   service_target = "/etc/init/airflow-webserver.conf"
   service_template = "init_system/upstart/airflow-webserver.conf.erb"
@@ -29,6 +34,7 @@ template service_target do
   group "root"
   mode "0644"
   variables({
+    :deps => deps,              
     :user => node["airflow"]["user"], 
     :group => node["airflow"]["group"],
     :run_path => node["airflow"]["run_path"],
@@ -58,6 +64,26 @@ remote_directory "#{node['airflow']['config']['core']['plugins_folder']}/hopswor
   files_owner node['airflow']['user']
   files_group node['airflow']['group']
   files_mode 0740
+end
+
+# Metrics exporter plugin 
+remote_file "#{Chef::Config['file_cache_path']}/airflow-exporter.tar.gz" do
+  source node['airflow']['metrics']['exporter_url']
+  owner 'root'
+  group 'root'
+  mode '0755'
+  action :create
+end
+
+bash 'extract-airflow-exporter' do 
+  user 'root'
+  group 'root'
+  code <<-EOH
+    tar xf #{Chef::Config['file_cache_path']}/airflow-exporter.tar.gz -C #{node['airflow']["config"]["core"]["plugins_folder"]}
+    chown -R #{node['airflow']['user']}:#{node['airflow']['group']} #{node['airflow']["config"]["core"]["plugins_folder"]}/airflow-exporter
+    chmod -R 700 #{node['airflow']["config"]["core"]["plugins_folder"]}/airflow-exporter
+  EOH
+  not_if { Dir.exists?("#{node['airflow']["config"]["core"]["plugins_folder"]}/airflow-exporter") }
 end
 
 service "airflow-webserver" do

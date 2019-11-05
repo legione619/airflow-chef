@@ -1,6 +1,7 @@
 import sys
 import requests
 import flask_login
+import jwt
 
 from requests.auth import AuthBase
 
@@ -17,11 +18,8 @@ PY3 = sys.version_info[0] == 3
 
 if PY3:
     from urllib import parse as urlparse
-    from jwt import JWT
-    jwt = JWT()
 else:
     import urlparse
-    import jwt
     
 log = LoggingMixin().log
 
@@ -82,7 +80,7 @@ def authenticate(jwt):
     hopsworks_port = configuration.conf.get("webserver", "hopsworks_port")
     if not hopsworks_port:
         hopsworks_port = 443
-    url = "https://{host}:{port}/giotto-api/api/auth/jwt/session".format(
+    url = "https://{host}:{port}/hopsworks-api/api/auth/jwt/session".format(
         host = parse_host(hopsworks_host),
         port = hopsworks_port)
 
@@ -148,9 +146,6 @@ def login(self, request, session=None):
         return redirect(url_for('airflow.noaccess'))
 
 def decode_jwt(encoded_jwt):
-    if PY3:
-        return jwt.decode(encoded_jwt, do_verify=False)
-    
     return jwt.decode(encoded_jwt, verify=False)
 
 class AuthorizationToken(AuthBase):
