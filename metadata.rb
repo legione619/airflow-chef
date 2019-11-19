@@ -17,7 +17,7 @@ description      'Installs and configures Airflow workflow management platform.'
 long_description 'Installs and configures Airflow workflow management platform. More information about Airflow can be found here: https://github.com/airbnb/airflow'
 source_url       'https://github.com/bahchis/airflow-cookbook'
 issues_url       'https://github.com/bahchis/airflow-cookbook/issues'
-version          '0.10.0'
+version          '0.9.0'
 supports         'ubuntu', '>= 14.04'
 supports         'centos', '>= 7.0'
 chef_version     '>=12.1'
@@ -74,7 +74,7 @@ attribute "airflow/config/scheduler/min_file_process_interval",
 attribute "airflow/config/scheduler/dag_dir_list_interval",
           :description => "How often in seconds to scan the DAGs directory for new files.",
           :type => 'string'
-
+ 
 attribute "sqoop/dir",
           :description => "Installation directory for the sqoop binaries/config files",
           :type => 'string'

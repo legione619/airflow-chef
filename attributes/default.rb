@@ -19,7 +19,7 @@ include_attribute "hops"
 
 # User configuration
 default['airflow']["airflow_package"] = 'apache-airflow' 
-default['airflow']["version"]         = "1.10.2"
+default['airflow']["version"]         = "1.10.1"
 default['airflow']['user']            = node['install']['user'].empty? ? 'airflow' : node['install']['user']
 default['airflow']['group']           = node['install']['user'].empty? ? 'airflow' : node['install']['user']
 
@@ -38,8 +38,8 @@ default['sqoop']['url']               = "#{node['download_url']}/sqoop-#{node['s
 default["sqoop"]["port"]              = "16000"
 
 
-
-default['airflow']["operators"]       = "hive,mysql,kubernetes,password,hdfs,slack,ssh,jdbc,mysql,devel_hadoop,crypto"
+## Remove devel_hadoop which brings snakebite[kerberos] which does not work on Python 3
+default['airflow']["operators"]       = "hive,mysql,kubernetes,password,hdfs,slack,ssh,jdbc,mysql,crypto"
 
 #default['airflow']["user_uid"] = 9999
 #default['airflow']["group_gid"] = 9999

@@ -38,8 +38,6 @@ class HopsworksJobFinishSensor(BaseSensorOperator):
     :type job_name: str
     :param project_id: Hopsworks Project ID the job is associated with
     :type project_id: int
-    :param project_name: Hopsworks Project name this job is associated with
-    :type project_name: str
     :param response_check: Custom function to check the return state
     :type response_check: function
     """
@@ -50,7 +48,6 @@ class HopsworksJobFinishSensor(BaseSensorOperator):
             hopsworks_conn_id = 'hopsworks_default',
             job_name = None,
             project_id = None,
-            project_name = None,
             response_check = None,
             *args,
             **kwargs):
@@ -58,11 +55,10 @@ class HopsworksJobFinishSensor(BaseSensorOperator):
         self.hopsworks_conn_id = hopsworks_conn_id
         self.job_name = job_name
         self.project_id = project_id
-        self.project_name = project_name
         self.response_check = response_check
 
     def _get_hook(self):
-        return HopsworksHook(self.hopsworks_conn_id, self.project_id, self.project_name, self.owner)
+        return HopsworksHook(self.hopsworks_conn_id, self.project_id, self.owner)
 
     def poke(self, context):
         hook = self._get_hook()
@@ -84,8 +80,6 @@ class HopsworksJobSuccessSensor(BaseSensorOperator):
     :type job_name: str
     :param project_id: Hopsworks Project ID the job is associated with
     :type project_id: int
-    :param project_name: Hopsworks Project name this job is associated with
-    :type project_name: str
     """
 
     @apply_defaults
@@ -94,7 +88,6 @@ class HopsworksJobSuccessSensor(BaseSensorOperator):
             hopsworks_conn_id = 'hopsworks_default',
             job_name = None,
             project_id = None,
-            project_name = None,
             poke_interval = 10,
             timeout = 3600,
             *args,
@@ -103,10 +96,9 @@ class HopsworksJobSuccessSensor(BaseSensorOperator):
         self.hopsworks_conn_id = hopsworks_conn_id
         self.job_name = job_name
         self.project_id = project_id
-        self.project_name = project_name
 
     def _get_hook(self):
-        return HopsworksHook(self.hopsworks_conn_id, self.project_id, self.project_name, self.owner)
+        return HopsworksHook(self.hopsworks_conn_id, self.project_id, self.owner)
 
     def poke(self, context):
         hook = self._get_hook()
