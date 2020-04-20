@@ -49,7 +49,7 @@ PROJECT_ID_KEY = 'projectId'
 # Key for project name for PROJECT_INFO_ID response
 PROJECT_NAME_KEY = 'projectName'
 
-BASE_API = "hopsworks-api/api"
+BASE_API = "giotto-api/api"
 
 ##############
 ## Jobs API ##

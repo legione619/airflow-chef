@@ -148,7 +148,7 @@ default['airflow']['config']['core']['default_timezone'] = "system"
 # airflow sends to point links to the right web server
 default['airflow']["config"]["webserver"]["web_server_worker_timeout"]  = 120
 default['airflow']["config"]["webserver"]["web_server_port"] = 12358
-default['airflow']['config']['webserver']['base_path'] = "/hopsworks-api/airflow"
+default['airflow']['config']['webserver']['base_path'] = "/giotto-api/airflow"
 default['airflow']["config"]["webserver"]["base_url"] = (node['install']['localhost'].casecmp?("true") ?  "http://localhost:" : "http://#{node['fqdn']}:") + node['airflow']['config']['webserver']['web_server_port'].to_s + node['airflow']['config']['webserver']['base_path']  
 default['airflow']["config"]["webserver"]["web_server_host"] = '0.0.0.0'
 # The port on which to run the web server
@@ -207,7 +207,7 @@ default['airflow']["config"]["celery"]["default_queue"]  = "default"
 #
 # Reverse Http Proxy
 # 
-default['airflow']['config']['celery']['flower_url_prefix'] = "http://localhost/hopsworks-api/flower"
+default['airflow']['config']['celery']['flower_url_prefix'] = "http://localhost/giotto-api/flower"
 
 #
 # Metrics exporter 
