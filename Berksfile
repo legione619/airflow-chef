@@ -19,7 +19,7 @@ metadata
 cookbook 'apt', '~> 7.0'
 cookbook 'poise-python', '~> 1.7'
 
-cookbook 'java'
+cookbook 'java', '= 7.0.0'
 cookbook 'kagent', github: "giabbo79/kagent-chef", branch: "1.0"
 cookbook 'hops', github: "giabbo79/hops-hadoop-chef", branch: "1.0"
 cookbook 'ndb', github: "giabbo79/ndb-chef", branch: "1.0"
