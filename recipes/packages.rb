@@ -19,7 +19,12 @@
 #end
 
 # Obtain the current platform name
-platform = node['platform'].to_s
+platform = node['platform_family'].to_s
+
+if platform == 'rhel' and node['rhel']['epel'].downcase == "true"
+  epel_release = { name: 'epel-release', version: ''}
+  node.default['airflow']['dependencies'][platform][:default] << epel_release
+end
 
 # Default dependencies to install
 dependencies_to_install = []
@@ -97,6 +102,8 @@ bash 'install_airflow' do
   cwd "/home/#{node['conda']['user']}"
   code <<-EOF
       set -e
+      # Pinning WTForms should be removed when upgrading airflow version, this change was to address https://github.com/apache/airflow/issues/8514
+      #{node['conda']['base_dir']}/envs/airflow/bin/pip install --no-cache-dir WTForms==2.2.1
       #{node['conda']['base_dir']}/envs/airflow/bin/pip install --no-cache-dir apache-airflow==#{node['airflow']['version']}
     EOF
 end

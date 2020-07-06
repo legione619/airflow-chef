@@ -7,6 +7,7 @@ hops_groups()
 group node['sqoop']['group'] do
   action :create
   not_if "getent group #{node['sqoop']['group']}"
+  not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
 
 user node['sqoop']['user'] do
@@ -16,24 +17,28 @@ user node['sqoop']['user'] do
   shell "/bin/bash"
   manage_home true
   not_if "getent passwd #{node['sqoop']['user']}"
+  not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
 
 group node['kagent']['certs_group'] do
   action :modify
   members ["#{node['sqoop']['user']}"]
   append true
+  not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
 
 group node['hops']['group'] do
   action :modify
   members ["#{node['sqoop']['user']}"]
   append true
+  not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
 
 group node['sqoop']['group'] do
   action :modify
   members ["#{node['airflow']['user']}"]
   append true
+  not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
 
 package_url = "#{node['sqoop']['url']}"
@@ -85,7 +90,7 @@ bash 'create_sqoop_db' do
   code <<-EOF
       set -e
       #{exec} -e \"CREATE DATABASE IF NOT EXISTS sqoop CHARACTER SET latin1\"
-      #{exec} -e \"GRANT ALL PRIVILEGES ON sqoop.* TO '#{node['airflow']['mysql_user']}'@'localhost' IDENTIFIED BY '#{node['airflow']['airflow_password']}'\"
+      #{exec} -e \"GRANT ALL PRIVILEGES ON sqoop.* TO '#{node['airflow']['mysql_user']}'@'localhost' IDENTIFIED BY '#{node['airflow']['mysql_password']}'\"
     EOF
   not_if "#{exec} -e 'show databases' | grep sqoop"
 end
@@ -116,6 +121,8 @@ remote_file "#{node['sqoop']['base_dir']}/lib/mysql-connector-java-#{node['hive2
   action :create_if_missing
 end
 
+
+
 service_name="sqoop"
 
 service service_name do
@@ -136,8 +143,12 @@ template systemd_script do
   owner "root"
   group "root"
   mode 0754
-  notifies :enable, resources(:service => service_name)
   notifies :start, resources(:service => service_name), :immediately
+end
+
+service service_name do
+  action :enable
+  only_if {node['services']['enabled'] == "true"}
 end
 
 kagent_config service_name do
@@ -148,7 +159,6 @@ if node['kagent']['enabled'] == "true"
    kagent_config service_name do
      service "airflow"
      log_file "#{node['sqoop']['base_dir']}/log/sqoop-metastore-sqoop-localhost.log"
-     web_port node['sqoop']['port'].to_i
    end
 end
 

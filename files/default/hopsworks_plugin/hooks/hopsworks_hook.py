@@ -26,6 +26,7 @@ import glob
 from time import sleep
 from requests import exceptions as requests_exceptions
 from requests.auth import AuthBase
+from json.decoder import JSONDecodeError as json_exception
 
 from airflow.hooks.base_hook import BaseHook
 from airflow.utils.log.logging_mixin import LoggingMixin
@@ -48,13 +49,46 @@ PROJECT_ID_KEY = 'projectId'
 # Key for project name for PROJECT_INFO_ID response
 PROJECT_NAME_KEY = 'projectName'
 
-RUN_JOB = ("POST", "giotto-api/api/project/{project_id}/jobs/{job_name}/executions?action=start")
+BASE_API = "hopsworks-api/api"
+
+##############
+## Jobs API ##
+##############
+
+RUN_JOB = ("POST", BASE_API + "/project/{project_id}/jobs/{job_name}/executions")
 # Get the latest execution
-JOB_STATE = ("GET", "giotto-api/api/project/{project_id}/jobs/{job_name}/executions?sort_by=appId:desc&limit=1")
+JOB_STATE = ("GET", BASE_API + "/project/{project_id}/jobs/{job_name}/executions?sort_by=appId:desc&limit=1")
+
+##################
+## Projects API ##
+##################
+
 # Get Project info from name
-PROJECT_INFO_NAME = ("GET", "giotto-api/api/project/getProjectInfo/{project_name}")
+PROJECT_INFO_NAME = ("GET", BASE_API + "/project/getProjectInfo/{project_name}")
 # Get Project info from id
-PROJECT_INFO_ID = ("GET", "giotto-api/api/project/{project_id}")
+PROJECT_INFO_ID = ("GET", BASE_API + "/project/{project_id}")
+
+#######################
+## Model service API ##
+#######################
+
+# Get Tf serving instances for a project
+PROJECT_SERVING_INSTANCES = ("GET", BASE_API + "/project/{project_id}/serving")
+# Create or update a serving instance
+CREATE_UPDATE_SERVING_INSTANCE = ("PUT", BASE_API + "/project/{project_id}/serving")
+# Start or stop a model serving instance
+START_STOP_SERVING_INSTANCE = ("POST", BASE_API + "/project/{project_id}/serving/{instance_id}?action={action}")
+
+#######################
+# Data Validation API #
+#######################
+
+# Fetch Feature store ID by name
+FEATURE_ID_BY_NAME = ("GET", BASE_API + "/project/{project_id}/featurestores/getByName/{feature_store_name}")
+# Fetch Feature Group ID by id
+FEATURE_GROUP_ID_BY_NAME = ("GET", BASE_API + "/project/{project_id}/featurestores/{feature_store_id}/featuregroups")
+# Fetch Feature Group validation result
+FEATURE_GROUP_VALIDATION_RESULT = ("GET", BASE_API + "/project/{project_id}/featurestores/{feature_store_id}/datavalidation/{feature_group_id}/result")
 
 class HopsworksHook(BaseHook, LoggingMixin):
     """
@@ -70,11 +104,12 @@ class HopsworksHook(BaseHook, LoggingMixin):
     :type owner: str
     """
     def __init__(self, hopsworks_conn_id='hopsworks_default', project_id=None,
-                 project_name=None, owner=None):
+                 project_name=None, owner=None, hw_api_key=None):
         self.hopsworks_conn_id = hopsworks_conn_id
         self.owner = owner
         self.hopsworks_conn = self.get_connection(hopsworks_conn_id)
         self.project_name = project_name
+        self.hw_api_key = hw_api_key
 
         if project_id is None:
             self.project_id,_ = self._get_project_info(project_id, project_name)
@@ -84,24 +119,35 @@ class HopsworksHook(BaseHook, LoggingMixin):
         if project_name is None:
             _, self.project_name = self._get_project_info(project_id, project_name)
 
+
     def get_connection(self, connection_id):
-        hopsworks_host = configuration.conf.get("webserver", "hopsworks_host")
-        hopsworks_port = configuration.conf.getint("webserver", "hopsworks_port")
-        return Connection(conn_id=connection_id,
-                          host=self._parse_host(hopsworks_host),
-                          port=hopsworks_port)
+        try:
+            conn = super().get_connection(connection_id)
+            if not conn.schema:
+                self.log.warn("Connection schema for {} was not set, setting https".format(connection_id))
+                conn.schema = "https"
+            return conn
+        except AirflowException:
+            self.log.warn("Didn't find connection with ID: {} - falling back to configuration".format(connection_id))
+            hopsworks_host = configuration.conf.get("webserver", "hopsworks_host")
+            hopsworks_port = configuration.conf.getint("webserver", "hopsworks_port")
+            return Connection(conn_id=connection_id,
+                              schema="https",
+                              host=self._parse_host(hopsworks_host),
+                              port=hopsworks_port)
     
-    def launch_job(self, job_name):
+    def launch_job(self, job_name, args):
         """
         Function for launching a job to Hopsworks. The call does not wait for job
         completion, use HopsworksSensor for this purpose.
         
         :param job_name: Name of the job to be launched in Hopsworks
         :type job_name: str
+        :type args: runtime arguments of this execution
         """
         method, endpoint = RUN_JOB
         endpoint = endpoint.format(project_id=self.project_id, job_name=job_name)
-        response = self._do_api_call(method, endpoint)
+        response = self._do_api_call(method, endpoint, args)
 
     def get_job_state(self, job_name):
         """
@@ -114,10 +160,76 @@ class HopsworksHook(BaseHook, LoggingMixin):
         endpoint = endpoint.format(project_id=self.project_id, job_name=job_name)
         response = self._do_api_call(method, endpoint)
         item = response['items'][0]
-        return item['state']
+        return item['state'], item['finalStatus']
 
-    def _do_api_call(self, method, endpoint):
-        url = "https://{host}:{port}/{endpoint}".format(
+    def get_model_serving_instances(self):
+        """
+        Get all Tensorflow serving instances for a project
+        """
+        method, endpoint = PROJECT_SERVING_INSTANCES
+        endpoint = endpoint.format(project_id=self.project_id)
+        return self._do_api_call(method, endpoint)
+
+    def create_update_serving_instance(self, parameters):
+        """
+        Create or update a serving instance. If serving ID is provided
+        it will update that instance. If not it will create a new one
+        """
+        method, endpoint = CREATE_UPDATE_SERVING_INSTANCE
+        endpoint = endpoint.format(project_id=self.project_id)
+        self._do_api_call(method, endpoint, parameters)
+        
+    def start_model_serving_instance(self, instance_id):
+        """
+        Start a model serving instance identified by an ID
+        
+        :param instance_id: Numerical identifier of a model serving instance
+        :type instance_id: int
+        """
+        method, endpoint = START_STOP_SERVING_INSTANCE
+        endpoint = endpoint.format(project_id=self.project_id, instance_id=instance_id, action="START")
+        self._do_api_call(method, endpoint)
+        
+    def stop_model_serving_instance(self, instance_id):
+        """
+        Stop a model serving instance identified by an ID
+        
+        :param instance_id: Numerical identifier of a model serving instance
+        :type instance_id: int
+        """
+        method, endpoint = START_STOP_SERVING_INSTANCE
+        endpoint = endpoint.format(project_id=self.project_id, instance_id=instance_id, action="STOP")
+        self._do_api_call(method, endpoint)
+
+    def get_feature_store_id_by_name(self, feature_store_name):
+        method, endpoint = FEATURE_ID_BY_NAME
+        endpoint = endpoint.format(project_id=self.project_id, feature_store_name=feature_store_name)
+        response = self._do_api_call(method, endpoint)
+        if not 'featurestoreId' in response:
+            raise AirflowException("Could not parse response, field featurestoreId does NOT exist!")
+        return response['featurestoreId']
+
+    def get_feature_group_id_by_name(self, feature_store_id, feature_group_name):
+        method, endpoint = FEATURE_GROUP_ID_BY_NAME
+        endpoint = endpoint.format(project_id=self.project_id, feature_store_id=feature_store_id)
+        response = self._do_api_call(method, endpoint)
+        for fg in response:
+            if 'name' in fg:
+                if fg['name'] == feature_group_name:
+                    feature_group_id = fg['id']
+                    break
+        if not feature_group_id:
+            raise AirflowException("Could not find ID for feature group {}".format(feature_group_name))
+        return feature_group_id
+
+    def get_feature_group_validation_result(self, feature_store_id, feature_group_id):
+        method, endpoint = FEATURE_GROUP_VALIDATION_RESULT
+        endpoint = endpoint.format(project_id=self.project_id, feature_store_id=feature_store_id, feature_group_id=feature_group_id)
+        return self._do_api_call(method, endpoint)
+
+    def _do_api_call(self, method, endpoint, data=None):
+        url = "{schema}://{host}:{port}/{endpoint}".format(
+            schema = self.hopsworks_conn.schema,
             host = self.hopsworks_conn.host,
             port = self.hopsworks_conn.port,
             endpoint = endpoint)
@@ -125,19 +237,28 @@ class HopsworksHook(BaseHook, LoggingMixin):
             requests_method = requests.get
         elif "POST" == method:
             requests_method = requests.post
+        elif "PUT" == method:
+            requests_method = requests.put
         else:
             raise AirflowException("Unexpected HTTP method: " + method)
 
         attempts = 1
         while True:
             try:
-                jwt = self._parse_jwt_for_user()
-                auth = AuthorizationToken(jwt)
+                if self.hw_api_key:
+                    auth = APIKeyAuthorization(self.hw_api_key)
+                else:
+                    jwt = self._parse_jwt_for_user()
+                    auth = JWTAuthorization(jwt)
                 # Until we find a better approach to load trust anchors and
                 # bypass hostname verification, disable verify
-                response = requests_method(url, auth=auth, verify=False)
+                response = requests_method(url, auth=auth, verify=False, data=data)
                 response.raise_for_status()
-                return response.json()
+                try:
+                    return response.json()
+                except json_exception:
+                    # No content in respose 201 CREATED
+                    return ""
             except requests_exceptions.SSLError as ex:
                 raise AirflowException(ex)
             except requests_exceptions.RequestException as ex:
@@ -145,6 +266,7 @@ class HopsworksHook(BaseHook, LoggingMixin):
                     raise AirflowException("Error making HTTP request. Response: {0} - Status Code: {1}"
                                            .format(ex.response.content, ex.response.status_code))
                 self.log.warn("Error making HTTP request, retrying...")
+                self.log.warn("Code {0} - Reason {1}".format(ex.response.status_code, ex.response.content))
                 attempts += 1
                 sleep(1)
         
@@ -240,10 +362,18 @@ class HopsworksHook(BaseHook, LoggingMixin):
         with open(jwt_token_file, 'r') as fd:
             return fd.read().strip()
 
-class AuthorizationToken(AuthBase):
+class JWTAuthorization(AuthBase):
     def __init__(self, token):
         self.token = token
 
     def __call__(self, request):
-        request.headers['Authorization'] = "Bearer " + self.token
+        request.headers['Authorization'] = "Bearer {0}".format(self.token)
+        return request
+
+class APIKeyAuthorization(AuthBase):
+    def __init__(self, key):
+        self.key = key
+
+    def __call__(self, request):
+        request.headers['Authorization'] = "ApiKey {0}".format(self.key)
         return request
