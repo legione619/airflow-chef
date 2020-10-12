@@ -20,9 +20,17 @@ user node['sqoop']['user'] do
   not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
 
-group node['kagent']['certs_group'] do
+group node["kagent"]["certs_group"] do
+  action :manage
+  append true
+  excluded_members node['sqoop']['user']
+  not_if { node['install']['external_users'].casecmp("true") == 0 }
+  only_if { conda_helpers.is_upgrade }
+end
+
+group node['kagent']['userscerts_group'] do
   action :modify
-  members ["#{node['sqoop']['user']}"]
+  members node['sqoop']['user']
   append true
   not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
@@ -91,6 +99,7 @@ bash 'create_sqoop_db' do
       set -e
       #{exec} -e \"CREATE DATABASE IF NOT EXISTS sqoop CHARACTER SET latin1\"
       #{exec} -e \"GRANT ALL PRIVILEGES ON sqoop.* TO '#{node['airflow']['mysql_user']}'@'localhost' IDENTIFIED BY '#{node['airflow']['mysql_password']}'\"
+      #{exec} -e \"GRANT ALL PRIVILEGES ON sqoop.* TO '#{node['airflow']['mysql_user']}'@'127.0.0.1' IDENTIFIED BY '#{node['airflow']['mysql_password']}'\"
     EOF
   not_if "#{exec} -e 'show databases' | grep sqoop"
 end
