@@ -18,7 +18,7 @@ default['airflow']['packages'] =
             { name: 'eventlet', version: '>=0.9.7' }],
     celery: [{ name: 'celery', version: '>=3.1.17' }],
     crypto: [{ name: 'cryptography', version: '>=0.9.3' },
-             {name: 'pyjwt', version: '>=1.6.4'}],
+             {name: 'pyjwt', version: '==1.7.1'}],
     doc: [{ name: 'sphinx', version: '>=1.2.3' },
           { name: 'sphinx-argparse', version: '>=0.1.13' },
           { name: 'sphinx-rtd-theme', version: '>=0.1.6' },
