@@ -19,7 +19,8 @@ include_attribute "hops"
 
 # User configuration
 default['airflow']["airflow_package"] = 'apache-airflow' 
-default['airflow']["version"]         = "1.10.2"
+default['airflow']["version"]         = "1.10.10"
+default['airflow']['url']             = "#{node['download_url']}/apache/airflow/#{node['airflow']['version']}/constraints/constraints-3.7.txt"
 default['airflow']['user']            = node['install']['user'].empty? ? 'airflow' : node['install']['user']
 default['airflow']['group']           = node['install']['user'].empty? ? 'airflow' : node['install']['user']
 
@@ -39,7 +40,7 @@ default["sqoop"]["port"]              = "16000"
 
 
 ## Remove devel_hadoop which brings snakebite[kerberos] which does not work on Python 3
-default['airflow']["operators"]       = "hive,mysql,kubernetes,password,hdfs,slack,ssh,jdbc,mysql,crypto"
+default['airflow']["operators"]       = "hive,mysql,kubernetes,password,hdfs,ssh,jdbc,mysql,crypto"
 
 #default['airflow']["user_uid"] = 9999
 #default['airflow']["group_gid"] = 9999
@@ -66,7 +67,7 @@ default['airflow']["scheduler_duration"] = 21600
 
 # Python config
 default['airflow']["python_runtime"] = "3"
-default['airflow']["python_version"] = "3.6"
+default['airflow']["python_version"] = "3.7"
 default['airflow']["pip_version"] = true
 
 # Configurations stated below are required for this cookbook and will be written to airflow.cfg, you can add more config by using structure like:
@@ -101,11 +102,11 @@ default['airflow']["config"]["core"]["fernet_key"] = "G3jB5--jCQpRYp7hwUtpfQ_S8z
 default['airflow']["config"]["celery"]["worker_concurrency"] = 16
 default['airflow']["config"]["celery"]["broker_url"] = "rdis://#{node['host']}:6379/0"
 
-default['airflow']["config"]["celery"]["celery_result_backend"] = "db+mysql://#{node['airflow']['mysql_user']}:#{node['airflow']['mysql_password']}@127.0.0.1:3306/airflow"
+default['airflow']["config"]["celery"]["celery_result_backend"] = "db+mysql://#{node['airflow']['mysql_user']}:#{node['airflow']['mysql_password']}@127.0.0.1:3306/airflow?charset=utf8mb4"
 
 # MySQL
 # The SqlAlchemy connection string to the metadata database.
-default['airflow']["config"]["core"]["sql_alchemy_conn"] = "mysql://#{node['airflow']['mysql_user']}:#{node['airflow']['mysql_password']}@127.0.0.1:3306/airflow"
+default['airflow']["config"]["core"]["sql_alchemy_conn"] = "mysql://#{node['airflow']['mysql_user']}:#{node['airflow']['mysql_password']}@127.0.0.1:3306/airflow?charset=utf8mb4"
 # The SqlAlchemy pool size is the maximum number of database connection in the pool.
 default['airflow']["config"]["core"]["sql_alchemy_pool_size"] = 5
 # The SqlAlchemy pool recycle is the number of seconds a connection
@@ -208,13 +209,6 @@ default['airflow']["config"]["celery"]["default_queue"]  = "default"
 # Reverse Http Proxy
 # 
 default['airflow']['config']['celery']['flower_url_prefix'] = "http://localhost/hopsworks-api/flower"
-
-#
-# Metrics exporter 
-# TODO: When we migrate to airflow 1.10.3 or higher we will be able to install the plugin with pip
-#
-default['airflow']['metrics']['exporter_url'] = "#{node['download_url']}/prometheus/airflow-exporter.tar.gz" 
-
 
 #
 # Scheduler
