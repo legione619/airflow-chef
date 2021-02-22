@@ -42,7 +42,7 @@ group node['sqoop']['group'] do
 end
 
 #update hive group
-group node['hive2']['group'] do
+group 'hive' do
   action :modify
   members  ["#{node['sqoop']['user']}","#{node['hops']['hdfs']['user']}","#{node['airflow']['user']}"]
   append true
