@@ -121,7 +121,23 @@ remote_file "#{node['sqoop']['base_dir']}/lib/mysql-connector-java-#{node['hive2
   action :create_if_missing
 end
 
+link "#{node['hive2']['lib_dir']}/hive-common-3.0.0.2.jar" do
+  owner node['sqoop']['user']
+  group node['sqoop']['group']
+  to "#{node['sqoop']['base_dir']}/lib/hive-common-3.0.0.2.jar"
+end
 
+link "#{node['hive2']['lib_dir']}/hive-exec-3.0.0.2.jar" do
+  owner node['sqoop']['user']
+  group node['sqoop']['group']
+  to "#{node['sqoop']['base_dir']}/lib/hive-exec-3.0.0.2.jar"
+end
+
+link "#{node['hive2']['lib_dir']}/hudi-hadoop-mr-bundle-0.5.0-SNAPSHOT.jar" do
+  owner node['sqoop']['user']
+  group node['sqoop']['group']
+  to "#{node['sqoop']['base_dir']}/lib/hudi-hadoop-mr-bundle-0.5.0-SNAPSHOT.jar"
+end
 
 service_name="sqoop"
 
