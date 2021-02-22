@@ -41,6 +41,14 @@ group node['sqoop']['group'] do
   not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
 
+#update hive group
+group node['hive2']['group'] do
+  action :modify
+  members  ["#{node['sqoop']['user']}","#{node['hops']['hdfs']['user']}","#{node['airflow']['user']}"]
+  append true
+  not_if { node['install']['external_users'].casecmp("true") == 0 }
+end
+
 package_url = "#{node['sqoop']['url']}"
 base_package_filename = File.basename(package_url)
 cached_package_filename = "#{Chef::Config['file_cache_path']}/#{base_package_filename}"
