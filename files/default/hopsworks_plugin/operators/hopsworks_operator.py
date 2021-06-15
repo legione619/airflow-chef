@@ -136,6 +136,7 @@ class HopsworksLaunchOperator(HopsworksAbstractOperator):
     :type poke_interval_s: int
     :param wait_timeout_s: Throw an exception if timeout has reached and job hasn't finished yet
     :type wait_timeout_s: int
+
     :param wait_for_state: Set of final states to wait for {'FINISHED', 'FAILED', 'KILLED', 'FRAMEWORK_FAILURE',
                            'APP_MASTER_START_FAILED', 'INITIALIZATION_FAILED'}
     :type wait_for_state: set

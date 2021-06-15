@@ -22,3 +22,4 @@ cookbook 'ndb', github: "giabbo79/ndb-chef", branch: "2.2"
 cookbook 'conda', github: "giabbo79/conda-chef", branch: "2.2"
 cookbook 'hive2', github: "giabbo79/hive-chef", branch: "2.2"
 cookbook 'consul', github: "giabbo79/consul-chef", branch: "2.2"
+
