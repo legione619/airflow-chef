@@ -66,24 +66,13 @@ remote_directory "#{node['airflow']['config']['core']['plugins_folder']}/hopswor
   files_mode 0740
 end
 
-# Metrics exporter plugin 
-remote_file "#{Chef::Config['file_cache_path']}/airflow-exporter.tar.gz" do
-  source node['airflow']['metrics']['exporter_url']
-  owner 'root'
-  group 'root'
-  mode '0755'
-  action :create
-end
-
-bash 'extract-airflow-exporter' do 
+bash 'remove-old-airflow-exporter' do
   user 'root'
   group 'root'
   code <<-EOH
-    tar xf #{Chef::Config['file_cache_path']}/airflow-exporter.tar.gz -C #{node['airflow']["config"]["core"]["plugins_folder"]}
-    chown -R #{node['airflow']['user']}:#{node['airflow']['group']} #{node['airflow']["config"]["core"]["plugins_folder"]}/airflow-exporter
-    chmod -R 700 #{node['airflow']["config"]["core"]["plugins_folder"]}/airflow-exporter
+   rm -rf #{node['airflow']["config"]["core"]["plugins_folder"]}/airflow-exporter
   EOH
-  not_if { Dir.exists?("#{node['airflow']["config"]["core"]["plugins_folder"]}/airflow-exporter") }
+  only_if { conda_helpers.is_upgrade }
 end
 
 service "airflow-webserver" do
@@ -93,6 +82,13 @@ end
 
 service "airflow-webserver" do
   action [:start]
+end
+
+# Register Airflow with Consul
+consul_service "Registering Airflow with Consul" do
+  service_definition "consul/airflow-consul.hcl.erb"
+  reload_consul false
+  action :register
 end
 
 if node['kagent']['enabled'] == "true"

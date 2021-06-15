@@ -23,14 +23,39 @@ from airflow.utils.decorators import apply_defaults
 
 from hopsworks_plugin.hooks.hopsworks_hook import HopsworksHook
 
-JOB_SUCCESS_FINAL_STATES = {'FINISHED'}
+JOB_SUCCESS_FINAL_APP_STATES = {'FINISHED'}
 
-JOB_FAILED_FINAL_STATES = {'FAILED', 'KILLED', 'FRAMEWORK_FAILURE',
+JOB_FAILED_FINAL_APP_STATES = {'FAILED', 'KILLED', 'FRAMEWORK_FAILURE',
                            'APP_MASTER_START_FAILED', 'INITIALIZATION_FAILED'}
 
-JOB_FINAL_STATES = JOB_FAILED_FINAL_STATES.union(JOB_SUCCESS_FINAL_STATES)
+JOB_FINAL_APP_STATES = JOB_FAILED_FINAL_APP_STATES.union(JOB_SUCCESS_FINAL_APP_STATES)
 
-class HopsworksJobFinishSensor(BaseSensorOperator):
+JOB_FAILED_AM_STATUS = {'FAILED', 'KILLED'}
+
+class HopsworksBaseSensor(BaseSensorOperator):
+    def __init__(
+            self,
+            hopsworks_conn_id = 'hopsworks_default',
+            job_name = None,
+            project_id = None,
+            project_name = None,
+            *args,
+            **kwargs):
+        super(HopsworksBaseSensor, self).__init__(*args, **kwargs)
+        self.hopsworks_conn_id = hopsworks_conn_id
+        self.job_name = job_name
+        self.project_id = project_id
+        self.project_name = project_name
+        if 'hw_api_key' in self.params:
+            self.hw_api_key = self.params['hw_api_key']
+        else:
+            self.hw_api_key = None
+
+    def _get_hook(self):
+        return HopsworksHook(self.hopsworks_conn_id, self.project_id, self.project_name, self.owner, self.hw_api_key)
+
+
+class HopsworksJobFinishSensor(HopsworksBaseSensor):
     """
     Sensor to wait for a job to finish regardless of the final state
 
@@ -54,28 +79,26 @@ class HopsworksJobFinishSensor(BaseSensorOperator):
             response_check = None,
             *args,
             **kwargs):
-        super(HopsworksJobFinishSensor, self).__init__(*args, **kwargs)
-        self.hopsworks_conn_id = hopsworks_conn_id
-        self.job_name = job_name
-        self.project_id = project_id
-        self.project_name = project_name
+        super(HopsworksJobFinishSensor, self).__init__(hopsworks_conn_id,
+                                                       job_name,
+                                                       project_id,
+                                                       project_name,
+                                                       *args,
+                                                       **kwargs)
         self.response_check = response_check
-
-    def _get_hook(self):
-        return HopsworksHook(self.hopsworks_conn_id, self.project_id, self.project_name, self.owner)
 
     def poke(self, context):
         hook = self._get_hook()
-        state = hook.get_job_state(self.job_name)
+        app_state, am_status = hook.get_job_state(self.job_name)
 
         if self.response_check:
-            return self.response_check(state)
+            return self.response_check(app_state, am_status)
 
         # If no check was defined, assume that any FINAL state is success
-        return state.upper() in JOB_FINAL_STATES
+        return app_state.upper() in JOB_FINAL_APP_STATES
 
-    
-class HopsworksJobSuccessSensor(BaseSensorOperator):
+
+class HopsworksJobSuccessSensor(HopsworksBaseSensor):
     """
     Sensor to wait for a successful completion of a job
     If the job fails, the sensor will fail
@@ -99,20 +122,19 @@ class HopsworksJobSuccessSensor(BaseSensorOperator):
             timeout = 3600,
             *args,
             **kwargs):
-        super(HopsworksJobSuccessSensor, self).__init__(*args, **kwargs)
-        self.hopsworks_conn_id = hopsworks_conn_id
-        self.job_name = job_name
-        self.project_id = project_id
-        self.project_name = project_name
-
-    def _get_hook(self):
-        return HopsworksHook(self.hopsworks_conn_id, self.project_id, self.project_name, self.owner)
+        super(HopsworksJobSuccessSensor, self).__init__(hopsworks_conn_id,
+                                                        job_name,
+                                                        project_id,
+                                                        project_name,
+                                                        *args,
+                                                        **kwargs)
 
     def poke(self, context):
         hook = self._get_hook()
-        state = hook.get_job_state(self.job_name)
+        app_state, am_status = hook.get_job_state(self.job_name)
 
-        if state.upper() in JOB_FAILED_FINAL_STATES:
+        if app_state.upper() in JOB_FAILED_FINAL_APP_STATES or \
+           (app_state.upper() in JOB_SUCCESS_FINAL_APP_STATES and am_status.upper() in JOB_FAILED_AM_STATUS):
             raise AirflowException("Hopsworks job failed")
-        
-        return state.upper() in JOB_SUCCESS_FINAL_STATES
+
+        return app_state.upper() in JOB_SUCCESS_FINAL_APP_STATES
