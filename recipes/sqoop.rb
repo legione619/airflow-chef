@@ -49,6 +49,14 @@ group node['sqoop']['group'] do
   not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
 
+#update hive group
+group 'hive' do
+  action :modify
+  members  ["#{node['sqoop']['user']}","#{node['hops']['hdfs']['user']}","#{node['airflow']['user']}"]
+  append true
+  not_if { node['install']['external_users'].casecmp("true") == 0 }
+end
+
 package_url = "#{node['sqoop']['url']}"
 base_package_filename = File.basename(package_url)
 cached_package_filename = "#{Chef::Config['file_cache_path']}/#{base_package_filename}"
@@ -134,7 +142,23 @@ remote_file "#{node['sqoop']['base_dir']}/lib/mysql-connector-java-#{node['hive2
   action :create_if_missing
 end
 
+link "#{node['sqoop']['base_dir']}/lib/hive-common-3.0.0.7.jar" do
+  owner node['sqoop']['user']
+  group node['sqoop']['group']
+  to "#{node['hive2']['lib_dir']}/hive-common-3.0.0.7.jar"
+end
 
+link "#{node['sqoop']['base_dir']}/lib/hive-exec-3.0.0.7.jar" do
+  owner node['sqoop']['user']
+  group node['sqoop']['group']
+  to "#{node['hive2']['lib_dir']}/hive-exec-3.0.0.7.jar"
+end
+
+link "#{node['sqoop']['base_dir']}/lib/hudi-hadoop-mr-bundle-0.7.0.1.jar" do
+  owner node['sqoop']['user']
+  group node['sqoop']['group']
+  to "#{node['hive2']['lib_dir']}/hopsworks-jars/hudi-hadoop-mr-bundle-0.7.0.1.jar"
+end
 
 service_name="sqoop"
 
