@@ -40,7 +40,6 @@ default["sqoop"]["port"]              = "16000"
 
 
 ## Remove devel_hadoop which brings snakebite[kerberos] which does not work on Python 3
-
 default['airflow']["operators"]       = "hive,mysql,kubernetes,password,hdfs,ssh,jdbc,mysql,crypto"
 
 #default['airflow']["user_uid"] = 9999
@@ -108,7 +107,6 @@ default['airflow']["config"]["celery"]["celery_result_backend"] = "db+mysql://#{
 # MySQL
 # The SqlAlchemy connection string to the metadata database.
 default['airflow']["config"]["core"]["sql_alchemy_conn"] = "mysql://#{node['airflow']['mysql_user']}:#{node['airflow']['mysql_password']}@127.0.0.1:3306/airflow?charset=utf8mb4"
-
 # The SqlAlchemy pool size is the maximum number of database connection in the pool.
 default['airflow']["config"]["core"]["sql_alchemy_pool_size"] = 5
 # The SqlAlchemy pool recycle is the number of seconds a connection
@@ -211,7 +209,6 @@ default['airflow']["config"]["celery"]["default_queue"]  = "default"
 # Reverse Http Proxy
 # 
 default['airflow']['config']['celery']['flower_url_prefix'] = "http://localhost/hopsworks-api/flower"
-
 
 #
 # Scheduler

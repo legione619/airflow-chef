@@ -17,20 +17,20 @@ description      'Installs and configures Airflow workflow management platform.'
 long_description 'Installs and configures Airflow workflow management platform. More information about Airflow can be found here: https://github.com/airbnb/airflow'
 source_url       'https://github.com/bahchis/airflow-cookbook'
 issues_url       'https://github.com/bahchis/airflow-cookbook/issues'
-version          '2.2.0'
+version          '2.3.0'
 supports         'ubuntu', '>= 14.04'
 supports         'centos', '>= 7.0'
 chef_version     '>=12.1'
 
 depends 'apt', '~> 7.0'
 depends 'poise-python', '~> 1.7'
-depends 'java', '~> 7.0.0'
 depends 'kagent'
 depends 'hops'
 depends 'ndb'
 depends 'conda'
 depends 'hive2'
 depends 'consul'
+depends 'java'
 
 recipe           "default", "Configures an Airflow Server"
 recipe           "install", "Installs an Airflow Server"
