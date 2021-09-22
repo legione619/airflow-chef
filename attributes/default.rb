@@ -235,4 +235,4 @@ default['airflow']["config"]["scheduler"]["dag_dir_list_interval"] = 40
 default['airflow']["config"]["scheduler"]["scheduler_zombie_task_threshold"] = 300
 # How often should stats be printed to the logs 
 default['airflow']["config"]["scheduler"]["print_stats_interval"] = 600
-default['airflow']["config"]["scheduler"]["catchup_by_default"] = False
+default['airflow']["config"]["scheduler"]["catchup_by_default"] = "false"
