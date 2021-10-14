@@ -100,10 +100,13 @@ bash 'create_sqoop_db' do
       #{exec} -e \"CREATE DATABASE IF NOT EXISTS sqoop CHARACTER SET latin1\"
       #{exec} -e \"CREATE USER IF NOT EXISTS '#{node['airflow']['mysql_user']}'@'localhost' IDENTIFIED WITH mysql_native_password BY '#{node['airflow']['mysql_password']}'\"
       #{exec} -e \"CREATE USER IF NOT EXISTS '#{node['airflow']['mysql_user']}'@'127.0.0.1' IDENTIFIED WITH mysql_native_password BY '#{node['airflow']['mysql_password']}'\"
+      #{exec} -e \"CREATE USER IF NOT EXISTS '#{node['airflow']['mysql_user']}'@'%' IDENTIFIED WITH mysql_native_password BY '#{node['airflow']['mysql_password']}'\"
       #{exec} -e \"GRANT NDB_STORED_USER ON *.* TO '#{node['airflow']['mysql_user']}'@'localhost'\"
       #{exec} -e \"GRANT NDB_STORED_USER ON *.* TO '#{node['airflow']['mysql_user']}'@'127.0.0.1'\"
+      #{exec} -e \"GRANT NDB_STORED_USER ON *.* TO '#{node['airflow']['mysql_user']}'@'%'\"
       #{exec} -e \"GRANT ALL PRIVILEGES ON sqoop.* TO '#{node['airflow']['mysql_user']}'@'localhost'\"
       #{exec} -e \"GRANT ALL PRIVILEGES ON sqoop.* TO '#{node['airflow']['mysql_user']}'@'127.0.0.1'\"
+      #{exec} -e \"GRANT ALL PRIVILEGES ON sqoop.* TO '#{node['airflow']['mysql_user']}'@'%'\"
     EOF
   not_if "#{exec} -e 'show databases' | grep sqoop"
 end
