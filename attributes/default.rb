@@ -122,7 +122,8 @@ default['airflow']["config"]["core"]["dag_concurrency"] = 16
 default['airflow']["config"]["core"]["dags_are_paused_at_creation"] = true
 # When not using pools, tasks are run in the "default pool", whose size is guided by this config element
 default['airflow']["config"]["core"]["non_pooled_task_slot_count"] = 128
-default['airflow']["config"]["core"]["max_active_runs_per_dag"] = 16
+#default['airflow']["config"]["core"]["max_active_runs_per_dag"] = 16
+default['airflow']["config"]["core"]["max_active_runs_per_dag"] = 1
 # How long before timing out a python file import while filling the DagBag
 default['airflow']["config"]["core"]["dagbag_import_timeout"] = 60
 
@@ -231,3 +232,4 @@ default['airflow']["config"]["scheduler"]["dag_dir_list_interval"] = 40
 default['airflow']["config"]["scheduler"]["scheduler_zombie_task_threshold"] = 300
 # How often should stats be printed to the logs 
 default['airflow']["config"]["scheduler"]["print_stats_interval"] = 600
+default['airflow']["config"]["scheduler"]["catchup_by_default"] = "false"
