@@ -17,7 +17,7 @@ description      'Installs and configures Airflow workflow management platform.'
 long_description 'Installs and configures Airflow workflow management platform. More information about Airflow can be found here: https://github.com/airbnb/airflow'
 source_url       'https://github.com/bahchis/airflow-cookbook'
 issues_url       'https://github.com/bahchis/airflow-cookbook/issues'
-version          '2.3.0'
+version          '2.4.0'
 supports         'ubuntu', '>= 14.04'
 supports         'centos', '>= 7.0'
 chef_version     '>=12.1'
@@ -34,7 +34,6 @@ depends 'java'
 
 recipe           "default", "Configures an Airflow Server"
 recipe           "install", "Installs an Airflow Server"
-recipe           "sqoop", "Installs and onfigures Sqoop and the Sqoop metastore service"
 recipe           "purge", "Removes and deletes an installed Airflow Server"
 
 attribute "airflow/dir",
@@ -45,8 +44,16 @@ attribute "airflow/user",
           :description => "Airflow username to run service as",
           :type => 'string'
 
+attribute "airflow/user_id",
+          :description => "airflow user id. Default: 1512",
+          :type => 'string'
+
 attribute "airflow/group",
           :description => "Airflow group to run service as",
+          :type => 'string'
+
+attribute "airflow/group",
+          :description => "airflow group id. Default: 1508",
           :type => 'string'
 
 attribute "airflow/mysql_user",
@@ -76,20 +83,3 @@ attribute "airflow/config/scheduler/min_file_process_interval",
 attribute "airflow/config/scheduler/dag_dir_list_interval",
           :description => "How often in seconds to scan the DAGs directory for new files.",
           :type => 'string'
-
-attribute "sqoop/dir",
-          :description => "Installation directory for the sqoop binaries/config files",
-          :type => 'string'
-
-attribute "sqoop/user",
-          :description => "Sqoop username to run service as",
-          :type => 'string'
-
-attribute "sqoop/group",
-          :description => "Sqoop group to run service as",
-          :type => 'string'
-
-attribute "sqoop/port",
-          :description => "Sqoop metastore port",
-          :type => 'string'
-
