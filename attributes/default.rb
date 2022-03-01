@@ -18,29 +18,15 @@ include_attribute "hops"
 
 
 # User configuration
-default['airflow']["airflow_package"] = 'apache-airflow' 
 default['airflow']["version"]         = "1.10.10"
-default['airflow']['url']             = "#{node['download_url']}/apache/airflow/#{node['airflow']['version']}/constraints/constraints-3.7.txt"
+default['airflow']['url']             = "#{node['download_url']}/airflow/#{node['airflow']['version']}/airflow.tgz"
 default['airflow']['user']            = node['install']['user'].empty? ? 'airflow' : node['install']['user']
+default['airflow']['user_id']         = '1512'
 default['airflow']['group']           = node['install']['user'].empty? ? 'airflow' : node['install']['user']
+default['airflow']['group_id']        = '1508'
 
 default['airflow']['mysql_user']      = "airflow_db"
 default['airflow']['mysql_password']  = "airflow_db"
-
-# Sqoop setup
-default["sqoop"]["version"]           = "1.4.7"
-default['sqoop']['user']              = node['install']['user'].empty? ? "sqoop" : node['install']['user']
-default['sqoop']['group']             = node['install']['user'].empty? ? "sqoop" : node['install']['user']
-default["sqoop"]["dir"]               = node['install']['dir'].empty? ? "/srv/hops" : node['install']['dir']
-default["sqoop"]["home"]              = node['sqoop']['dir'] + "/sqoop-" +  node['sqoop']['version'] + ".bin__hadoop-2.6.0"
-default["sqoop"]["base_dir"]          = node['sqoop']['dir'] + "/sqoop" 
-# sqoop-1.4.7.bin__hadoop-2.6.0.tar.gz
-default['sqoop']['url']               = "#{node['download_url']}/sqoop-#{node['sqoop']['version']}.bin__hadoop-2.6.0.tar.gz"
-default["sqoop"]["port"]              = "16000"
-
-
-## Remove devel_hadoop which brings snakebite[kerberos] which does not work on Python 3
-default['airflow']["operators"]       = "hive,mysql,kubernetes,password,hdfs,ssh,jdbc,mysql,crypto"
 
 #default['airflow']["user_uid"] = 9999
 #default['airflow']["group_gid"] = 9999
@@ -48,7 +34,6 @@ default['airflow']["user_home_directory"] = "/home/#{node['airflow']['user']}"
 default['airflow']["shell"] = "/bin/bash"
 
 default['airflow']["dir"]                 = node['install']['dir'].empty? ? "/srv/hops" : node['install']['dir']
-default['airflow']["home"]                = node['airflow']['dir'] + "/airflow-" +  node['airflow']['version']
 default['airflow']["base_dir"]            = node['airflow']['dir'] + "/airflow" 
 
 
@@ -56,29 +41,30 @@ default['airflow']["base_dir"]            = node['airflow']['dir'] + "/airflow"
 default['airflow']["directories_mode"] = "0770"
 default['airflow']["config_file_mode"] = "0600"
 default['airflow']["bin_path"] = "#{node['conda']['base_dir']}/envs/airflow/bin"
-default['airflow']["run_path"] = node['airflow']["base_dir"] + "/run"
-default['airflow']["is_upstart"] = node["platform"] == "ubuntu" && node["platform_version"].to_f < 15.04
-default['airflow']["init_system"] = node['airflow']["is_upstart"] ? "upstart" : "systemd"
-default['airflow']["env_path"] = node['airflow']["base_dir"] + "/airflow.env"
 default['airflow']["scheduler_runs"] = 5
 # Number of seconds to execute before exiting
 default['airflow']["scheduler_duration"] = 21600
 
-
-# Python config
-default['airflow']["python_runtime"] = "3"
-default['airflow']["python_version"] = "3.7"
-default['airflow']["pip_version"] = true
-
 # Configurations stated below are required for this cookbook and will be written to airflow.cfg, you can add more config by using structure like:
 # default['airflow']["config"]["CONFIG_SECTION"]["CONFIG_ENTRY"]
 
+# Data volume directories
+default['airflow']['data_volume']['root_dir']       = "#{node['data']['dir']}/airflow"
+default['airflow']['data_volume']['dags_dir']       = "#{node['airflow']['data_volume']['root_dir']}/dags"
+default['airflow']['data_volume']['log_dir']        = "#{node['airflow']['data_volume']['root_dir']}/logs"
+default['airflow']['data_volume']['secrets_dir']    = "#{node['airflow']['data_volume']['root_dir']}/secrets"
+
+# Folder where airflow will store Project user secrets
+default['airflow']['secrets_link']                    = "#{node['airflow']['base_dir']}/secrets"
+default['airflow']['dags_link']                       = "#{node['airflow']['base_dir']}/dags"
+default['airflow']['log_link']                        = "#{node['airflow']['base_dir']}/logs"
+
 #  The home folder for airflow, default is ~/airflow
-default['airflow']["config"]["core"]["airflow_home"] = node['airflow']["base_dir"]
+default['airflow']["config"]["core"]["airflow_home"] = "/airflow"
 # The folder where your airflow pipelines live, most likely a subfolder in a code repository
-default['airflow']["config"]["core"]["dags_folder"] = "#{node['airflow']["config"]["core"]["airflow_home"]}/dags"
+default['airflow']["config"]["core"]["dags_folder"] = "/airflow/dags"
 # The folder where airflow should store its log files. This location
-default['airflow']["config"]["core"]["base_log_folder"]  = node['airflow']["base_dir"] + "/logs"
+default['airflow']["config"]["core"]["base_log_folder"]  = "/airflow/logs"
 
 # must supply a remote location URL (starting with either 's3://...' or
 # 'gs://...') and an Airflow connection id that provides access to the storage
@@ -93,7 +79,7 @@ default['airflow']["config"]["core"]["base_log_folder"]  = node['airflow']["base
 default['airflow']["config"]["core"]["donot_pickle"]  = false
  
 # Where your Airflow plugins are stored
-default['airflow']["config"]["core"]["plugins_folder"] = "#{node['airflow']["config"]["core"]["airflow_home"]}/plugins"
+default['airflow']["config"]["core"]["plugins_folder"] = "/airflow/plugins"
 
 #default['airflow']["config"]["core"]["fernet_key"] = cryptography_not_found_storing_passwords_in_plain_text
 default['airflow']["config"]["core"]["fernet_key"] = "G3jB5--jCQpRYp7hwUtpfQ_S8zLRbRMwX8tr3dehnNU=" # Be sure to change this for production
@@ -122,8 +108,7 @@ default['airflow']["config"]["core"]["dag_concurrency"] = 16
 default['airflow']["config"]["core"]["dags_are_paused_at_creation"] = true
 # When not using pools, tasks are run in the "default pool", whose size is guided by this config element
 default['airflow']["config"]["core"]["non_pooled_task_slot_count"] = 128
-#default['airflow']["config"]["core"]["max_active_runs_per_dag"] = 16
-default['airflow']["config"]["core"]["max_active_runs_per_dag"] = 1
+default['airflow']["config"]["core"]["max_active_runs_per_dag"] = 16
 # How long before timing out a python file import while filling the DagBag
 default['airflow']["config"]["core"]["dagbag_import_timeout"] = 60
 
@@ -232,4 +217,3 @@ default['airflow']["config"]["scheduler"]["dag_dir_list_interval"] = 40
 default['airflow']["config"]["scheduler"]["scheduler_zombie_task_threshold"] = 300
 # How often should stats be printed to the logs 
 default['airflow']["config"]["scheduler"]["print_stats_interval"] = 600
-default['airflow']["config"]["scheduler"]["catchup_by_default"] = "false"

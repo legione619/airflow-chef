@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-group node["airflow"]["group"] do
+group node['airflow']['group'] do
+  gid node['airflow']['group_id']
   action :create
   not_if "getent group #{node['airflow']['group']}"
   not_if { node['install']['external_users'].casecmp("true") == 0 }
@@ -21,6 +22,7 @@ end
 user node['airflow']['user'] do
   comment "Airflow user"
   home node["airflow"]["user_home_directory"]
+  uid node['airflow']['user_id']
   gid node['airflow']['group']
   system true
   shell "/bin/bash"
@@ -30,16 +32,14 @@ user node['airflow']['user'] do
   not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
 
-group node['hops']['group'] do
-  gid node['hops']['group_id']
-  action :create
-  not_if "getent group #{node['hops']['group']}"
-  not_if { node['install']['external_users'].casecmp("true") == 0 }
+hopsworksUser = "glassfish"
+if node.attribute? "hopsworks" and node["hopsworks"].attribute? "user"
+   hopsworksUser = node['hopsworks']['user']
 end
 
-group node['hops']['group'] do
+group node['airflow']['group'] do
   action :modify
-  members ["#{node['airflow']['user']}"]
+  members [hopsworksUser]  
   append true
   not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
